@@ -10,9 +10,27 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@better-auth/passkey": "^1.4.10",
+    "@nuxt/ui": "^4.3.0",
+    "better-auth": "^1.4.9",
     "nuxt": "^4.2.2",
-    "vue": "^3.5.25",
+    "vue": "^3.5.26",
     "vue-router": "^4.6.4"
   },
-  "packageManager": "pnpm@10.26.0+sha512.3b3f6c725ebe712506c0ab1ad4133cf86b1f4b687effce62a9b38b4d72e3954242e643190fc51fa1642949c735f403debd44f5cb0edd657abe63a8b6a7e1e402"
+  "packageManager": "pnpm@10.26.0+sha512.3b3f6c725ebe712506c0ab1ad4133cf86b1f4b687effce62a9b38b4d72e3954242e643190fc51fa1642949c735f403debd44f5cb0edd657abe63a8b6a7e1e402",
+  "pnpm": {
+    "overrides": {
+      "@tiptap/core": "^3.14.0",
+      "@tiptap/pm": "^3.14.0",
+      "@tiptap/starter-kit": "^3.14.0"
+    },
+    "ignoredBuiltDependencies": [
+      "esbuild",
+      "vue-demi"
+    ]
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "tailwindcss": "^4.1.18"
+  }
 }

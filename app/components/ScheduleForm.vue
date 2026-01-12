@@ -27,9 +27,19 @@ const form = reactive({
   id: undefined as string | undefined,
   title: '',
   subtitle: '',
-  duration: 60 as number | null,
+  duration: 0 as number | null,
   tags: [] as string[],
 });
+
+const resetForm = () => {
+  form.id = undefined;
+  form.title = '';
+  form.subtitle = '';
+  form.duration = 60;
+  form.tags = [];
+  isDetailOpen.value = false;
+  newTagInput.value = '';
+};
 
 watch(
   () => props.initialData,
@@ -88,11 +98,10 @@ const removeTag = (index: number) => form.tags.splice(index, 1);
 
 const handleSubmit = () => {
   if (!form.title) return;
-  if (!form.title) return;
-
   emit('submit', { ...form });
-
-  isDetailOpen.value = false;
+  if (!form.id) {
+    resetForm();
+  }
 };
 </script>
 

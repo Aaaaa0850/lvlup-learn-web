@@ -1,19 +1,23 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import type { Schedule } from '~/types/schedule';
 
 defineProps<{
   items: Schedule[];
+  pending: boolean;
+  error: any;
 }>();
 
-const emit = defineEmits(['delete', 'open-modal', 'retry', 'update']);
+const emit = defineEmits(['delete', 'open-modal', 'retry', 'update', 'refresh']);
 
-const handleDeleteEmit = (id: string) => {
-  emit('delete', id);
-};
+const isMounted = ref(false);
+onMounted(() => {
+  isMounted.value = true;
+});
 </script>
 
 <template>
-  <div>
+  <div class="relative w-full min-w-full">
     <div class="md:hidden mb-4">
       <UButton
         block
@@ -25,30 +29,46 @@ const handleDeleteEmit = (id: string) => {
       />
     </div>
 
-    <TransitionGroup v-if="items.length > 0" name="schedule-list" tag="div" class="space-y-3 pb-20 relative">
-      <ScheduleCard
-        v-for="item in items"
-        :key="item.id"
-        :item="item"
-        @delete="handleDeleteEmit"
-        @retry="(data) => $emit('retry', data)"
-        @update="(item) => $emit('update', item)"
-      />
-    </TransitionGroup>
+    <div v-if="pending || !isMounted" class="w-full py-32 flex flex-col items-center justify-center text-center">
+      <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-emerald-500 mb-4" />
+      <p class="text-sm font-bold text-slate-400 tracking-wide animate-pulse">スケジュールを確認中...</p>
+    </div>
 
     <div
-      v-else
-      class="flex flex-col items-center justify-center py-20 bg-white/50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800"
+      v-else-if="error"
+      class="w-full py-16 flex flex-col items-center justify-center border-2 border-dashed border-red-100 rounded-2xl bg-red-50/30 text-center"
     >
-      <UIcon name="i-lucide-calendar-plus" class="w-12 h-12 mb-3 text-slate-300" />
-      <p class="text-sm font-medium text-slate-500">予定がありません</p>
-      <p class="hidden md:block text-xs text-slate-400 mt-1">左側のフォームから新しい予定を追加しましょう</p>
-      <p class="md:hidden text-xs text-slate-400 mt-1">上のボタンから新しい予定を追加しましょう</p>
+      <UIcon name="i-lucide-alert-circle" class="w-10 h-10 text-red-400 mb-3" />
+      <p class="text-sm font-bold text-red-600 mb-4">データの取得に失敗しました</p>
+      <UButton label="再読み込み" icon="i-lucide-refresh-cw" variant="soft" color="primary" @click="$emit('refresh')" />
+    </div>
+
+    <div v-else class="w-full">
+      <TransitionGroup v-if="items.length > 0" name="schedule-list" tag="div" class="space-y-3 pb-20 relative">
+        <ScheduleCard
+          v-for="item in items"
+          :key="item.id"
+          :item="item"
+          @delete="(id) => $emit('delete', id)"
+          @retry="(data) => $emit('retry', data)"
+          @update="(item) => $emit('update', item)"
+        />
+      </TransitionGroup>
+
+      <div
+        v-else
+        class="w-full flex flex-col items-center justify-center py-20 bg-white/50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-center"
+      >
+        <UIcon name="i-lucide-calendar-plus" class="w-12 h-12 mb-3 text-slate-300" />
+        <p class="text-sm font-medium text-slate-500">予定がありません</p>
+        <p class="hidden md:block text-xs text-slate-400 mt-1">左側のフォームから新しい予定を追加しましょう</p>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* スタイルは一切変更なし */
 .schedule-list-move,
 .schedule-list-enter-active,
 .schedule-list-leave-active {

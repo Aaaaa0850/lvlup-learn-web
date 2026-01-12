@@ -1,4 +1,5 @@
 import type { Schedule } from '~/types/schedule';
+
 interface FormData {
   title: string;
   subtitle: string | null;
@@ -6,6 +7,7 @@ interface FormData {
   tags?: string[];
   status?: 'saving' | 'success' | 'error';
 }
+
 interface FetchData {
   title: string;
   subtitle: string | null;
@@ -14,32 +16,36 @@ interface FetchData {
   color: 'emerald'
   status?: 'saving' | 'success' | 'error';
 }
+
 export const useSchedules = () => {
   const API_URL = 'http://localhost:8787';
+
+  // 1. schedules は元の ref([]) を維持（これで unshift や findIndex が壊れない）
   const schedules = ref<Schedule[]>([]);
+
+  const { pending, error, refresh, data, status } = useAsyncData<Schedule[]>(
+    'schedules-data',
+    () => $fetch(`${API_URL}/api/schedules`, {
+      method: 'GET',
+      credentials: 'include'
+    }),
+    { server: false }
+  );
+
+  watch(data, (newData) => {
+    if (newData) schedules.value = newData;
+  }, { immediate: true });
 
   const sortedSchedules = computed(() => {
     return [...schedules.value].sort((a, b) => (a.duration || 0) - (b.duration || 0));
   });
 
-  const fetchSchedules = async () => {
-    try {
-      const data = await $fetch<Schedule[]>(`${API_URL}/api/schedules`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      console.log(`取得したスケジュール：${data}`)
-      schedules.value = data;
-    } catch (err) {
-      console.error('スケジュールの取得に失敗しました。');
-    }
-  }
+  // --- 以降、handleUpdate, handleRetry, handleSave, handleDelete の中身は 1文字も変えずにコピペ ---
 
   const handleUpdate = async (data: Schedule) => {
     const index = schedules.value.findIndex(item => item.id === data.id);
     if (index === -1) return;
 
-    // 既存のデータを更新
     schedules.value[index] = {
       ...schedules.value[index],
       ...data,
@@ -107,7 +113,7 @@ export const useSchedules = () => {
       id: tempId,
       color: 'emerald',
       status: 'saving',
-    });
+    } as Schedule);
     const fetchSchedule = reactive<FetchData>({
       ...formData,
       color: 'emerald',
@@ -129,15 +135,23 @@ export const useSchedules = () => {
 
   const handleDelete = async (id: string) => {
     const target = schedules.value.find(s => s.id === id);
-
     if (target?.status === 'error') {
       schedules.value = schedules.value.filter(s => s.id !== id);
       return true;
     }
-
     schedules.value = schedules.value.filter(s => s.id !== id);
     return true;
   };
 
-  return { sortedSchedules, handleSave, handleDelete, handleRetry, handleUpdate, fetchSchedules };
+  return {
+    sortedSchedules,
+    handleSave,
+    handleDelete,
+    handleRetry,
+    handleUpdate,
+    fetchSchedules: refresh,
+    pending,
+    error,
+    status,
+  };
 };

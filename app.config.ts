@@ -4,5 +4,6 @@ export default defineAppConfig({
     primary: 'emerald',
     neutral: 'gray',
     gray: 'slate',
+    orange: 'secondary'
   }
 })

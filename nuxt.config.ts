@@ -6,7 +6,9 @@ export default defineNuxtConfig({
     '/': { prerender: true },
     //'/dashboard/**': { ssr: false },
     '/schedule/**': { ssr: true },
-    '/login/**': { prerender: true }
+    '/login/**': { prerender: true },
+    '/privacy/**': { prerender: true },
+    '/terms/**': { prerender: true }
     //'/api/**': { cors: true },
   },
   modules: ['@nuxt/ui'],

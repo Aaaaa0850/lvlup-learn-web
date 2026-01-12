@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { nextTick } from 'vue';
 import type { Schedule } from '~/types/schedule';
-import { onMounted } from 'vue';
 
-const { sortedSchedules, handleSave, handleDelete, handleRetry, handleUpdate, fetchSchedules } = useSchedules();
+const { sortedSchedules, handleSave, handleDelete, handleRetry, handleUpdate, fetchSchedules, pending, error } =
+  useSchedules();
+
 const isModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
 const itemToDelete = ref<string | null>(null);
 const editingItem = ref<Schedule | null>(null);
 
-onMounted(() => {
-  fetchSchedules();
-});
 const onSave = async (payload: {
   id?: string;
   title: string;
@@ -20,13 +18,13 @@ const onSave = async (payload: {
   tags: string[];
 }) => {
   isModalOpen.value = false;
-
   if (payload.id) {
     await handleUpdate(payload as any);
   } else {
     handleSave({ ...payload, status: 'saving' } as any);
   }
 };
+
 const onRetry = async (data: Schedule) => {
   handleRetry({ ...data });
 };
@@ -46,10 +44,8 @@ watch(isModalOpen, (val) => {
 });
 
 const confirmDelete = (id: string) => {
-  console.log('削除対象ID:', id);
   itemToDelete.value = id;
   isDeleteModalOpen.value = true;
-  console.log(isDeleteModalOpen);
 };
 
 const executeDelete = async () => {
@@ -82,7 +78,6 @@ const executeDelete = async () => {
             <aside class="hidden md:block md:col-span-4 lg:col-span-3 sticky top-0">
               <UCard class="border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800">
                 <template #header><h3 class="font-bold text-emerald-600">新規作成</h3></template>
-
                 <ScheduleForm :is-loading="false" @submit="(data) => handleSave({ ...data, status: 'saving' })" />
               </UCard>
             </aside>
@@ -90,10 +85,13 @@ const executeDelete = async () => {
             <div class="col-span-1 md:col-span-8 lg:col-span-9">
               <ScheduleList
                 :items="sortedSchedules"
+                :pending="pending"
+                :error="error"
                 @delete="confirmDelete"
                 @open-modal="isModalOpen = true"
                 @retry="onRetry"
                 @update="onEdit"
+                @refresh="fetchSchedules"
               />
             </div>
           </div>

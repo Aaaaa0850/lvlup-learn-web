@@ -18,6 +18,11 @@ const emit = defineEmits<{
   (e: 'start', task: Schedule): void;
   (e: 'skip', task: Schedule): void;
 }>();
+
+const isMounted = ref(false);
+onMounted(() => {
+  isMounted.value = true;
+});
 </script>
 
 <template>
@@ -35,7 +40,7 @@ const emit = defineEmits<{
     </div>
 
     <div class="flex-1 overflow-y-auto pr-2 pb-10 space-y-4 scroll-container" style="max-height: calc(100vh - 280px)">
-      <div v-if="pending" class="flex flex-col items-center justify-center py-12 space-y-3">
+      <div v-if="pending || !isMounted" class="flex flex-col items-center justify-center py-12 space-y-3">
         <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-emerald-500" />
         <p class="text-xs font-bold text-slate-400 animate-pulse">スケジュールを取得中...</p>
       </div>
@@ -57,6 +62,7 @@ const emit = defineEmits<{
           <UIcon name="i-lucide-calendar-x" class="w-8 h-8 text-slate-400" />
         </div>
         <h3 class="font-bold mb-1 text-sm text-slate-800">スケジュールがありません</h3>
+        <p class="text-xs text-slate-400 mt-1">クイックスタートから勉強を開始しましょう</p>
       </div>
 
       <template v-else>

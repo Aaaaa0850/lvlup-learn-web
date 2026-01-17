@@ -1,34 +1,12 @@
 import type { Schedule } from '~/types/schedule';
 
-interface FormData {
-  title: string;
-  subtitle: string | null;
-  duration: number | null;
-  tags?: string[];
-  status?: 'saving' | 'success' | 'error';
-}
-
-interface FetchData {
-  title: string;
-  subtitle: string | null;
-  duration: number | null;
-  tags?: string[];
-  color: 'emerald'
-  status?: 'saving' | 'success' | 'error';
-}
-
 export const useSchedules = () => {
   const API_URL = 'http://localhost:8787';
-
-  // 1. schedules は元の ref([]) を維持（これで unshift や findIndex が壊れない）
   const schedules = ref<Schedule[]>([]);
 
-  const { pending, error, refresh, data, status } = useAsyncData<Schedule[]>(
+  const { pending, error, refresh, data } = useAsyncData<Schedule[]>(
     'schedules-data',
-    () => $fetch(`${API_URL}/api/schedules`, {
-      method: 'GET',
-      credentials: 'include'
-    }),
+    () => $fetch(`${API_URL}/api/schedules`, { credentials: 'include' }),
     { server: false }
   );
 
@@ -40,107 +18,112 @@ export const useSchedules = () => {
     return [...schedules.value].sort((a, b) => (a.duration || 0) - (b.duration || 0));
   });
 
-  // --- 以降、handleUpdate, handleRetry, handleSave, handleDelete の中身は 1文字も変えずにコピペ ---
-
-  const handleUpdate = async (data: Schedule) => {
-    const index = schedules.value.findIndex(item => item.id === data.id);
-    if (index === -1) return;
-
-    schedules.value[index] = {
-      ...schedules.value[index],
-      ...data,
-      status: 'saving'
-    };
-    const body = {
-      ...data,
-      color: data.color || 'emerald'
-    };
-
-    try {
-      const res = await $fetch<Schedule>(`${API_URL}/api/schedules`, {
-        method: 'PUT',
-        body: body,
-        credentials: 'include'
-      })
-      schedules.value[index] = {
-        ...res,
-        status: 'success'
-      };
-      setTimeout(() => {
-        if (schedules.value[index]) {
-          schedules.value[index].status = undefined;
-        }
-      }, 1500);
-    } catch (e) {
-      schedules.value[index]!.status = 'error';
-    }
+  const finalizeSuccess = (item: Schedule, delay = 1500) => {
+    item.status = 'success';
+    setTimeout(() => {
+      if (schedules.value.some(s => s.id === item.id)) {
+        item.status = undefined;
+      }
+    }, delay);
   };
 
-  const handleRetry = async (data: Schedule) => {
-    const index = schedules.value.findIndex(item => item.id === data.id);
-    if (index === -1 || !schedules.value[index]) return;
-
-    schedules.value[index].status = 'saving';
-    const fetchSchedule = reactive<FetchData>({
-      ...data,
-      color: 'emerald',
-    });
-    try {
-      const res = await $fetch<Schedule>(`${API_URL}/api/schedules`, {
-        method: 'POST',
-        body: fetchSchedule,
-        credentials: 'include'
-      })
-      schedules.value[index] = {
-        ...res,
-        status: 'success'
-      };
-      setTimeout(() => {
-        if (schedules.value[index]) {
-          const target = schedules.value.find(s => s.id === res.id);
-          if (target) target.status = undefined;
-        }
-      }, 1500);
-    } catch (e) {
-      schedules.value[index]!.status = 'error';
-    }
-  };
-
-  const handleSave = async (formData: FormData) => {
+  const handleSave = async (payload: Partial<Schedule>) => {
     const tempId = `temp-${Date.now()}`;
-    const optimisticData = reactive<Schedule>({
-      ...formData,
+    const newItem = reactive({
+      ...payload,
       id: tempId,
       color: 'emerald',
       status: 'saving',
-    } as Schedule);
-    const fetchSchedule = reactive<FetchData>({
-      ...formData,
-      color: 'emerald',
-    });
-    schedules.value.unshift(optimisticData);
+    }) as Schedule;
+
+    schedules.value.unshift(newItem);
 
     try {
       const res = await $fetch<Schedule>(`${API_URL}/api/schedules`, {
         method: 'POST',
-        body: fetchSchedule,
+        body: { ...payload, color: 'emerald' },
         credentials: 'include'
-      })
-      Object.assign(optimisticData, { ...res, status: 'success' });
-      setTimeout(() => { optimisticData.status = undefined; }, 1500);
+      });
+
+      Object.assign(newItem, res);
+      finalizeSuccess(newItem);
     } catch (e) {
-      optimisticData.status = 'error';
+      newItem.status = 'saveError';
+    }
+  };
+
+  const handleUpdate = async (item: Schedule) => {
+    const target = schedules.value.find(s => s.id === item.id);
+    if (!target) return;
+
+    target.status = 'updating';
+
+    try {
+      const { status, ...body } = item;
+
+      const res = await $fetch<Schedule>(`${API_URL}/api/schedules`, {
+        method: 'PUT',
+        body: {
+          ...body,
+          color: target.color || 'emerald'
+        },
+        credentials: 'include'
+      });
+
+      Object.assign(target, res);
+      finalizeSuccess(target);
+    } catch (e) {
+      console.error('Update failed:', e);
+      target.status = 'updateError';
     }
   };
 
   const handleDelete = async (id: string) => {
     const target = schedules.value.find(s => s.id === id);
-    if (target?.status === 'error') {
+    if (!target) return;
+    if (target.status === 'saveError') {
       schedules.value = schedules.value.filter(s => s.id !== id);
-      return true;
+      return;
     }
-    schedules.value = schedules.value.filter(s => s.id !== id);
-    return true;
+    target.status = 'deleting';
+    try {
+      await $fetch(`${API_URL}/api/schedules/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      target.status = 'success';
+      setTimeout(() => {
+        schedules.value = schedules.value.filter(s => s.id !== id);
+      }, 1000);
+    } catch (e) {
+      target.status = 'deleteError';
+    }
+  };
+
+  const handleRetry = async (item: Schedule) => {
+    if (item.status === 'saveError') {
+      const backup = { ...item };
+      schedules.value = schedules.value.filter(s => s.id !== item.id);
+      await handleSave(backup);
+    } else if (item.status === 'updateError') {
+      await handleUpdate(item);
+    } else if (item.status === 'deleteError') {
+      await handleDelete(item.id);
+    }
+  };
+
+  const handleCancel = (id: string) => {
+    const index = schedules.value.findIndex(s => s.id === id);
+    if (index === -1) return;
+
+    const target = schedules.value[index];
+    if (!target) return false;
+
+    target.status = 'cancel';
+
+    setTimeout(() => {
+      target.status = undefined;
+    }, 1000);
   };
 
   return {
@@ -149,9 +132,9 @@ export const useSchedules = () => {
     handleDelete,
     handleRetry,
     handleUpdate,
+    handleCancel,
     fetchSchedules: refresh,
     pending,
     error,
-    status,
   };
 };

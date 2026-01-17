@@ -2,8 +2,17 @@
 import { nextTick } from 'vue';
 import type { Schedule } from '~/types/schedule';
 
-const { sortedSchedules, handleSave, handleDelete, handleRetry, handleUpdate, fetchSchedules, pending, error } =
-  useSchedules();
+const {
+  sortedSchedules,
+  handleSave,
+  handleDelete,
+  handleRetry,
+  handleUpdate,
+  handleCancel,
+  fetchSchedules,
+  pending,
+  error,
+} = useSchedules();
 
 const isModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
@@ -18,15 +27,17 @@ const onSave = async (payload: {
   tags: string[];
 }) => {
   isModalOpen.value = false;
+
   if (payload.id) {
-    await handleUpdate(payload as any);
+    await handleUpdate(payload as Schedule);
   } else {
-    handleSave({ ...payload, status: 'saving' } as any);
+    const { id, ...body } = payload;
+    await handleSave(body);
   }
 };
 
-const onRetry = async (data: Schedule) => {
-  handleRetry({ ...data });
+const onRetry = async (item: Schedule) => {
+  handleRetry({ ...item });
 };
 
 const onEdit = async (item: Schedule) => {
@@ -51,12 +62,10 @@ const confirmDelete = (id: string) => {
 const executeDelete = async () => {
   if (itemToDelete.value) {
     try {
-      await handleDelete(itemToDelete.value);
       isDeleteModalOpen.value = false;
+      await handleDelete(itemToDelete.value);
       itemToDelete.value = null;
-    } catch (error) {
-      console.error('削除失敗:', error);
-    }
+    } catch (error) {}
   }
 };
 </script>
@@ -92,6 +101,7 @@ const executeDelete = async () => {
                 @retry="onRetry"
                 @update="onEdit"
                 @refresh="fetchSchedules"
+                @cancel="handleCancel"
               />
             </div>
           </div>

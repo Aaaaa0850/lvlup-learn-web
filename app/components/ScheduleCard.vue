@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Schedule } from '~/types/schedule';
 defineProps<{ item: Schedule }>();
-defineEmits(['delete', 'retry', 'update']);
+defineEmits(['delete', 'retry', 'update', 'cancel']);
 </script>
 
 <template>
@@ -56,9 +56,16 @@ defineEmits(['delete', 'retry', 'update']);
       class="absolute inset-0 flex items-center justify-center z-10 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px]"
     >
       <div class="flex items-center gap-2 text-sm font-bold">
-        <template v-if="item.status === 'saving'">
+        <template v-if="item.status === 'saving' || item.status === 'updating'">
           <UIcon name="i-lucide-loader-2" class="animate-spin text-emerald-500" />
-          <span class="text-slate-700 dark:text-slate-200">保存中...</span>
+          <span class="text-slate-700 dark:text-slate-200">
+            {{ item.status === 'saving' ? '保存中...' : '更新中...' }}
+          </span>
+        </template>
+
+        <template v-else-if="item.status === 'deleting'">
+          <UIcon name="i-lucide-loader-2" class="animate-spin text-red-500" />
+          <span class="text-red-600">削除中...</span>
         </template>
 
         <template v-else-if="item.status === 'success'">
@@ -66,11 +73,25 @@ defineEmits(['delete', 'retry', 'update']);
           <span class="text-primary-600">完了</span>
         </template>
 
-        <template v-else-if="item.status === 'error'">
+        <template v-else-if="item.status === 'saveError'">
           <UIcon name="i-lucide-alert-circle" class="text-red-500" />
-          <span class="text-red-600">保存に失敗しました</span>
+          <span class="text-red-600">保存失敗</span>
           <UButton size="xs" color="primary" variant="subtle" label="再試行" @click="$emit('retry', item)" />
-          <UButton size="xs" color="error" variant="subtle" label="削除" @click="$emit('delete', item.id)" />
+          <UButton size="xs" color="neutral" variant="subtle" label="破棄" @click="$emit('delete', item.id)" />
+        </template>
+
+        <template v-else-if="item.status === 'deleteError' || item.status === 'updateError'">
+          <UIcon name="i-lucide-alert-circle" class="text-red-500" />
+          <span class="text-red-600">
+            {{ item.status === 'deleteError' ? '削除失敗' : '更新失敗' }}
+          </span>
+          <UButton size="xs" color="primary" variant="subtle" label="再試行" @click="$emit('retry', item)" />
+          <UButton size="xs" color="neutral" variant="subtle" label="取消" @click="$emit('cancel', item.id)" />
+        </template>
+
+        <template v-else-if="item.status === 'cancel'">
+          <UIcon name="i-lucide-rotate-ccw" class="text-slate-400 animate-spin" />
+          <span class="text-slate-500">取消中...</span>
         </template>
       </div>
     </div>

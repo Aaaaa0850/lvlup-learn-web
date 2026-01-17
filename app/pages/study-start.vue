@@ -3,7 +3,7 @@ const { schedules, pending, error, refresh, startStudy, skipTask } = useStudySch
 
 const tabs = [
   { label: 'スケジュール', icon: 'i-lucide-calendar-check', slot: 'planned' },
-  { label: 'クイック開始', icon: 'i-lucide-zap', slot: 'quick' },
+  { label: 'クイックスタート', icon: 'i-lucide-zap', slot: 'quick' },
 ];
 </script>
 
@@ -13,7 +13,7 @@ const tabs = [
       <header class="py-4 mb-2 shrink-0 w-full flex justify-between items-center">
         <h1 class="text-2xl font-black flex items-center gap-3 italic uppercase">
           <UIcon name="i-lucide-play" class="text-emerald-500" />
-          学習を開始する
+          勉強を開始する
         </h1>
       </header>
 

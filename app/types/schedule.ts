@@ -5,5 +5,5 @@ export interface Schedule {
   duration: number | null;
   color?: string | null;
   tags?: string[];
-  status?: 'saving' | 'success' | 'error';
+  status?: 'saving' | 'updating' | 'deleting' | 'success' | 'saveError' | 'updateError' | 'deleteError' | 'cancel';
 }

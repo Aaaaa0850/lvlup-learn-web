@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
 import type { Schedule } from '~/types/schedule';
 
 defineProps<{
@@ -8,7 +7,7 @@ defineProps<{
   error: any;
 }>();
 
-const emit = defineEmits(['delete', 'open-modal', 'retry', 'update', 'refresh']);
+const emit = defineEmits(['delete', 'open-modal', 'retry', 'update', 'refresh', 'cancel']);
 
 const isMounted = ref(false);
 onMounted(() => {
@@ -50,8 +49,9 @@ onMounted(() => {
           :key="item.id"
           :item="item"
           @delete="(id) => $emit('delete', id)"
-          @retry="(data) => $emit('retry', data)"
+          @retry="(item) => $emit('retry', item)"
           @update="(item) => $emit('update', item)"
+          @cancel="(id) => $emit('cancel', id)"
         />
       </TransitionGroup>
 
@@ -62,13 +62,13 @@ onMounted(() => {
         <UIcon name="i-lucide-calendar-plus" class="w-12 h-12 mb-3 text-slate-300" />
         <p class="text-sm font-medium text-slate-500">予定がありません</p>
         <p class="hidden md:block text-xs text-slate-400 mt-1">左側のフォームから新しい予定を追加しましょう</p>
+        <p class="md:hidden text-xs text-slate-400 mt-1">上のボタンから新しい予定を追加しましょう</p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* スタイルは一切変更なし */
 .schedule-list-move,
 .schedule-list-enter-active,
 .schedule-list-leave-active {

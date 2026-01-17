@@ -35,7 +35,7 @@ const resetForm = () => {
   form.id = undefined;
   form.title = '';
   form.subtitle = '';
-  form.duration = 60;
+  form.duration = null;
   form.tags = [];
   isDetailOpen.value = false;
   newTagInput.value = '';
@@ -55,12 +55,25 @@ watch(
       form.id = undefined;
       form.title = '';
       form.subtitle = '';
-      form.duration = 60;
+      form.duration = null;
       form.tags = [];
       isDetailOpen.value = false;
     }
   },
   { immediate: true, deep: true }
+);
+
+watch(
+  () => form.duration,
+  (newVal) => {
+    if (newVal === null) return;
+    if (newVal > 1440) {
+      form.duration = 1440;
+    }
+    if (newVal < 0) {
+      form.duration = 0;
+    }
+  }
 );
 
 const generateAiTags = async () => {
@@ -98,7 +111,19 @@ const removeTag = (index: number) => form.tags.splice(index, 1);
 
 const handleSubmit = () => {
   if (!form.title) return;
-  emit('submit', { ...form });
+  const d = form.duration || 0;
+  if (d < 0 || d > 1440) {
+    toast.add({
+      title: '入力エラー',
+      description: '時間は0分から1440分（24時間）の間で設定してください',
+      color: 'error',
+    });
+    return;
+  }
+  emit('submit', {
+    ...form,
+    duration: form.duration ? Number(form.duration) : 0,
+  });
   if (!form.id) {
     resetForm();
   }
@@ -135,7 +160,7 @@ const handleSubmit = () => {
             </UFormField>
 
             <UFormField label="予定時間 (分)">
-              <UInput v-model="form.duration" type="number" size="lg" />
+              <UInput v-model="form.duration" type="number" size="lg" :min="1" :max="1440" />
             </UFormField>
 
             <UFormField label="タグ (最大3つ)">

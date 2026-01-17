@@ -6,8 +6,65 @@ export const useStudyTimer = () => {
   const plannedDuration = ref(0);
   const elapsedSeconds = ref(0);
   const isPaused = ref(false);
+  const isFinishModalOpen = ref(false);
+  const isSubmitting = ref(false);
   let timerInterval: ReturnType<typeof setInterval> | null = null;
 
+  const handleFinishButtonClick = async () => {
+    if (!isPaused.value) {
+      togglePause();
+    }
+    isFinishModalOpen.value = true;
+  };
+
+  const handleFinalFinish = async () => {
+    isSubmitting.value = true;
+    const saved = localStorage.getItem(ACTIVE_SESSION_KEY);
+    if (!saved) {
+      isSubmitting.value = false;
+      return;
+    }
+
+    const session = JSON.parse(saved);
+    const now = new Date();
+
+    const startDate = new Date(session.startTime);
+
+    const body = {
+      scheduleId: session.id,
+      title: session.title,
+      subtitle: session.subtitle || '',
+      startDateTime: session.startTime,
+      endDateTime: now.toISOString(),
+      date: startDate.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }),
+      tags: Array.isArray(session.tags) ? session.tags.slice(0, 3) : [],
+      studyMinutes: Math.max(1, Math.floor(elapsedSeconds.value / 60)),
+    };
+    console.log(body);
+    try {
+      await $fetch('http://localhost:8787/api/achievements', {
+        method: 'POST',
+        body: body,
+        credentials: 'include',
+      });
+
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
+      isFinishModalOpen.value = false;
+      navigateTo('/stats');
+    } catch (e) {
+      console.error('Save Error:', e);
+      alert('保存に失敗しました。');
+    } finally {
+      isSubmitting.value = false;
+    }
+  };
+
+  const handleContinueButtonClick = async () => {
+    isFinishModalOpen.value = false;
+    if (isPaused.value) {
+      togglePause();
+    }
+  };
   const calculateElapsed = (session: any) => {
     const startTime = new Date(session.startTime).getTime();
     const now = new Date().getTime();
@@ -92,6 +149,11 @@ export const useStudyTimer = () => {
     initTimer,
     togglePause,
     stopTimer,
-    ACTIVE_SESSION_KEY
+    ACTIVE_SESSION_KEY,
+    handleFinishButtonClick,
+    handleFinalFinish,
+    handleContinueButtonClick,
+    isFinishModalOpen,
+    isSubmitting
   };
 };

@@ -28,19 +28,18 @@ export const useStudySchedules = () => {
     }
   );
 
-  // 学習開始アクション
   const startStudy = (task: Partial<Schedule>) => {
-    // 1. セッション情報をLocalStorageに保存
     const sessionData = {
       ...task,
+      tags: task.tags || [],
       startTime: new Date().toISOString(),
-      isQuickStart: !task.id, // IDがなければクイック開始
+      isQuickStart: !task.id,
+      isPaused: false,
+      totalPausedMs: 0,
     };
 
     localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(sessionData));
 
-    // 2. タイマー画面へ遷移
-    // IDがある場合はクエリに含め、ない場合は 'quick' とする
     const targetId = task.id || 'quick';
     navigateTo(`/study/${targetId}`);
   };
